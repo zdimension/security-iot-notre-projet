@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="lib1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/Egate/lib/offcardverifier.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/Egate/lib/makeijc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/Egate/lib/api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/Egate/lib/captransf.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/Egate/lib/converter.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
