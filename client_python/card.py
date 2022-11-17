@@ -6,11 +6,12 @@ import re
 from colorama import Fore, Style
 
 DESCRIPTION_COLOR = {
-    "E": Fore.RED, # Error
-    "W": Fore.YELLOW, # Warning
-    "I": Fore.GREEN, # Info
-    "S": Fore.MAGENTA, # Security
+    "E": Fore.RED,  # Error
+    "W": Fore.YELLOW,  # Warning
+    "I": Fore.GREEN,  # Info
+    "S": Fore.MAGENTA,  # Security
 }
+
 
 def apply_color(msg, kind):
     return DESCRIPTION_COLOR[kind] + msg + Style.RESET_ALL
@@ -18,15 +19,24 @@ def apply_color(msg, kind):
 
 with open("response_descriptions.txt") as fp:
     raw_desc = [line.strip().split("\t") for line in fp]
-    response_descriptions = [(sw1, re.sub(r"^\.", "(.", re.sub(r"\.$", ".)", sw2)), apply_color(desc, kind)) for sw1, sw2, kind, desc in raw_desc]
+    response_descriptions = [(
+        sw1,
+        # convert .. blocks to regex group so we can extract values later
+        re.sub(r"^\.", "(.", re.sub(r"\.$", ".)", sw2)),
+        # make the message colored depending on the kind
+        apply_color(desc, kind)
+    ) for sw1, sw2, kind, desc in raw_desc]
 
 CLA_PROJET = 0x42
 APPLET_AID = [0xA0, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x10, 0x01]
 
 
 def instr(ins, p1=0, p2=0, write=[], recv=0, cla=CLA_PROJET):
-    res = query(cla, ins, p1, p2, *
-                ([len(write), *write] if write else []), recv)
+    res = query(cla, ins,
+                p1, p2,
+                # send length and data only if `write` is not empty
+                *([len(write), *write] if write else []),
+                recv)
     if res.sw1 == 0x6C:
         print(f"{Fore.YELLOW}*** Retrying with correct length{Style.RESET_ALL}")
         return instr(ins, p1, p2, write, res.sw2)
@@ -50,30 +60,41 @@ class Response:
 
 class Card:
     def hello():
+        """Gets a greeting from the card"""
         return instr(0x01)
 
     def login(pin):
-        assert len(pin) == 4
+        """Login with the given PIN"""
         return instr(0x02, write=list(map(int, pin)))
 
     def change_pin(new_pin):
-        assert len(new_pin) == 4
+        """Change the PIN to the given one"""
         return instr(0x03, write=list(map(int, new_pin)))
 
     def logout():
+        """Logout from the card"""
         return instr(0x04)
 
     def factory_reset():
-        return instr(0x05)
+        """Reset the card to its factory state"""
+        res = instr(0x05)
+        print("Note: you will need to re-login after this")
+        return res
 
     def encrypt(data):
+        """Encrypt the given data"""
         assert len(data) <= 16
         if type(data) == str:
             data = data.encode("utf-8")
         return instr(0x06, write=data)
 
     def get_public_key():
+        """Get the public key of the card"""
         return instr(0x07)
+
+    @staticmethod
+    def commands():
+        return {name: func for name, func in Card.__dict__.items() if callable(func) and not name.startswith("_")}
 
 
 def get_description(sw1, sw2):
@@ -112,7 +133,7 @@ def init_card():
         except NoCardException:
             print(reader, 'no card inserted')
             exit()
-    
+
     print(f"{Fore.GREEN}*** Creating applet command{Style.RESET_ALL}")
     instr(cla=0x80, ins=0xE8, p1=0x00, p2=0x00, write=APPLET_AID)
     print(f"{Fore.GREEN}*** Selecting applet{Style.RESET_ALL}")
