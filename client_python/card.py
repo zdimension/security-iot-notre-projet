@@ -3,21 +3,35 @@ from smartcard.Exceptions import NoCardException
 from smartcard.System import readers
 from smartcard.util import toHexString
 import re
+from colorama import Fore, Style
+
+DESCRIPTION_COLOR = {
+    "E": Fore.RED, # Error
+    "W": Fore.YELLOW, # Warning
+    "I": Fore.GREEN, # Info
+    "S": Fore.MAGENTA, # Security
+}
+
+def apply_color(msg, kind):
+    return DESCRIPTION_COLOR[kind] + msg + Style.RESET_ALL
+
 
 with open("response_descriptions.txt") as fp:
-    response_descriptions = [line.strip().split("\t") for line in fp]
+    raw_desc = [line.strip().split("\t") for line in fp]
+    response_descriptions = [(sw1, re.sub(r"^\.", "(.", re.sub(r"\.$", ".)", sw2)), apply_color(desc, kind)) for sw1, sw2, kind, desc in raw_desc]
 
 CLA_PROJET = 0x42
+APPLET_AID = [0xA0, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x10, 0x01]
 
 
 def instr(ins, p1=0, p2=0, write=[], recv=0, cla=CLA_PROJET):
     res = query(cla, ins, p1, p2, *
                 ([len(write), *write] if write else []), recv)
     if res.sw1 == 0x6C:
-        print("*** Retrying with correct length")
+        print(f"{Fore.YELLOW}*** Retrying with correct length{Style.RESET_ALL}")
         return instr(ins, p1, p2, write, res.sw2)
     elif res.sw1 == 0x61:  # GET RESPONSE
-        print("*** Retrying with GET RESPONSE")
+        print(f"{Fore.YELLOW}*** Retrying with GET RESPONSE{Style.RESET_ALL}")
         return instr(cla=0xA0, ins=0xC0, p1=0, p2=0, recv=res.sw2)
     print()
     return res
@@ -62,16 +76,20 @@ class Card:
         return instr(0x07)
 
 
+def get_description(sw1, sw2):
+    for s1, s2, desc in response_descriptions:
+        if re.match(s1, "%02X" % sw1) and (m2 := re.match(s2, "%02X" % sw2)):
+            if "." in s2:
+                return re.sub(r"\\x+\\", str(int(m2.group(1), 16)), desc, flags=re.IGNORECASE)
+            return desc
+    return "Unknown response"
+
+
 def query(*command):
     data, sw1, sw2 = connection.transmit(list(command))
-    desc = [desc for s1, s2, kind, desc in response_descriptions if re.match(
-        s1, "%02X" % sw1) and re.match(s2, "%02X" % sw2)]
-    if desc == []:
-        desc = "Unknown response"
-    else:
-        desc = desc[0]
+    desc = get_description(sw1, sw2)
     print(" ".join("%02X" % c for c in command),
-          "=>", "%02X %02X" % (sw1, sw2), desc)
+          "=>", "%02X %02X:" % (sw1, sw2), desc)
     if data:
         print(" ".join("%02X" % c for c in data),
               "==",
@@ -94,10 +112,8 @@ def init_card():
         except NoCardException:
             print(reader, 'no card inserted')
             exit()
-    # create applet cmd
-    # our AID is 0xa0:0x40:0x41:0x42:0x43:0x44:0x45:0x46:0x10:0x01
-    instr(cla=0x80, ins=0xE8, p1=0x00, p2=0x00, write=[
-          0xA0, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x10, 0x01])
-    # select applet cmd
-    instr(cla=0x00, ins=0xA4, p1=0x04, p2=0x00, write=[
-          0xA0, 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x10, 0x01])
+    
+    print(f"{Fore.GREEN}*** Creating applet command{Style.RESET_ALL}")
+    instr(cla=0x80, ins=0xE8, p1=0x00, p2=0x00, write=APPLET_AID)
+    print(f"{Fore.GREEN}*** Selecting applet{Style.RESET_ALL}")
+    instr(cla=0x00, ins=0xA4, p1=0x04, p2=0x00, write=APPLET_AID)

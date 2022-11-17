@@ -8,6 +8,8 @@ commands = {name: func
             for name, func
             in Card.__dict__.items() if callable(func) and not name.startswith("_")}
 
+help_msg = "Type 'help' for a list of available commands"
+print("Card REPL active.", help_msg)
 while True:
     command = input("> ").strip()
     if not command:
@@ -24,4 +26,4 @@ while True:
             print(e)
             traceback.print_exc()
     else:
-        print("Unknown command")
+        print("Unknown command.", help_msg)

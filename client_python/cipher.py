@@ -1,7 +1,5 @@
 from card import Card, init_card
 import sys
-from Crypto.PublicKey.RSA import construct
-from Crypto.Cipher import PKCS1_OAEP
 import rsa
 
 # get filename from argv

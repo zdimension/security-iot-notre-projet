@@ -11,7 +11,7 @@
 62	85	W	No input data available from a sensor on the card. No Purse Engine enslaved for R3bc
 62	A2	W	Wrong R-MAC
 62	A4	W	Card locked (during reset( ))
-62	C.	W	Counter with value x (command dependent)
+62	C.	W	Counter with value \x\ (command dependent)
 62	F1	W	Wrong C-MAC
 62	F3	W	Internal reset
 62	F5	W	Default agent locked
@@ -80,7 +80,7 @@
 69	86	E	Command not allowed (no current EF)
 69	87	E	Expected secure messaging (SM) object missing
 69	88	E	Incorrect secure messaging (SM) data object
-69	8D	 	Reserved
+69	8D	I	Reserved
 69	96	E	Data must be updated again
 69	E1	E	POL1 of the currently Enabled Profile prevents this action.
 69	F0	E	Permission Denied
@@ -240,4 +240,4 @@
 9F	00	E	PIN blocked and Unblock Try Counter is 3
 9F	04	E	PIN not succesfully verified, PIN blocked and Unblock Try Counter is 3
 9F	..	E	Command successfully executed; \xx\ bytes of data are available and can be requested using GET RESPONSE.
-9x	..	E	Application related status, (ISO 7816-3)
+9.	..	E	Application related status, (ISO 7816-3)
