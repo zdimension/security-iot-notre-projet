@@ -78,9 +78,15 @@ On peut afficher la clé publique (sans authentification) et la clé privée (en
 
 ![image](https://user-images.githubusercontent.com/4533568/202867210-4a3969fa-0254-484f-8666-b1ea190f6dfd.png)
 
-On peut exporter ces deux clés vers une paire de fichiers `.pub` et `.pem` (respectivement la clé publique et la clé privée). Il est ainsi possible de vérifier côté client la signature, par exemple avec `openssl` :
+On peut exporter ces deux clés vers une paire de fichiers `.pub` et `.pem` (respectivement la clé publique et la clé privée) :
+
+![image](https://user-images.githubusercontent.com/4533568/202867642-3096f38c-fb69-4aed-92ac-157678d6d5f1.png)
+
+![image](https://user-images.githubusercontent.com/4533568/202867654-34244b2c-21c3-4160-9009-b02692949bd8.png)
+
+Il est ainsi possible de vérifier côté client la signature, par exemple avec `openssl` :
 
 ```shell
-$ openssl dgst -sha256 -verify key.pub -signature test.txt.sign test.txt
+$ openssl dgst -sha256 -verify carte.pub -signature test.txt.sign test.txt
 Verified OK
 ```
