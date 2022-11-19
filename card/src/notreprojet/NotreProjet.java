@@ -1,5 +1,6 @@
 package notreprojet;
 
+import java.math.BigInteger;
 import javacard.framework.APDU;
 import javacard.framework.Applet;
 import javacard.framework.ISO7816;
@@ -7,6 +8,7 @@ import javacard.framework.ISOException;
 import javacard.framework.OwnerPIN;
 import javacard.framework.Util;
 import javacard.security.KeyPair;
+import javacard.security.RSAPrivateCrtKey;
 import javacard.security.RSAPublicKey;
 import javacardx.crypto.Cipher;
 
@@ -53,13 +55,17 @@ public class NotreProjet extends Applet {
      */
     public static final byte INS_FACTORY_RESET = 0x05;
     /**
-     * @see NotreProjet#encrypt(APDU)
+     * @see NotreProjet#sign(APDU)
      */
-    public static final byte INS_ENCRYPT = 0x06;
+    public static final byte INS_SIGN = 0x06;
     /**
      * @see NotreProjet#getPublicKey(APDU)
      */
     public static final byte INS_GET_PUBLIC_KEY = 0x07;
+    /**
+     * @see NotreProjet#getPrivateKey(APDU)
+     */
+    public static final byte INS_GET_PRIVATE_KEY = 0x08;
     /**
      * PIN failed, more than 3 tries remaining
      */
@@ -213,11 +219,14 @@ public class NotreProjet extends Applet {
             case INS_FACTORY_RESET:
                 factoryReset();
                 break;
-            case INS_ENCRYPT:
-                encrypt(apdu);
+            case INS_SIGN:
+                sign(apdu);
                 break;
             case INS_GET_PUBLIC_KEY:
                 getPublicKey(apdu);
+                break;
+            case INS_GET_PRIVATE_KEY:
+                getPrivateKey(apdu);
                 break;
             default:
                 ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
@@ -312,30 +321,38 @@ public class NotreProjet extends Applet {
         generateKeyPair();
     }
 
+    private static final byte[] ASN1_SHA256 = {
+        (byte) 0x30, (byte) 0x31, (byte) 0x30, (byte) 0x0d, (byte) 0x06, (byte) 0x09, (byte) 0x60,
+        (byte) 0x86, (byte) 0x48, (byte) 0x01, (byte) 0x65, (byte) 0x03, (byte) 0x04, (byte) 0x02,
+        (byte) 0x01, (byte) 0x05, (byte) 0x00, (byte) 0x04, (byte) 0x20
+    };
+
     /**
-     * <h2>"Encrypt" command.</h2>
+     * <h2>"Sign" command.</h2>
      * <p>Checks that the user is logged in ({@link NotreProjet#checkLoggedIn()}), and if so,
-     * encrypts the data sent by the client using the private key
+     * signs the data sent by the client using the private key
      * ({@link NotreProjet#keyPair}).</p>
      *
      * @param apdu the APDU object
      */
-    private void encrypt(APDU apdu) {
+    private void sign(APDU apdu) {
         checkLoggedIn();
 
         byte[] buffer = apdu.getBuffer();
         Cipher cipher = Cipher.getInstance(Cipher.ALG_RSA_PKCS1, false);
         cipher.init(keyPair.getPrivate(), Cipher.MODE_ENCRYPT);
+        short inputLength = buffer[ISO7816.OFFSET_LC];
+        byte[] markedData = new byte[(short)(inputLength + ASN1_SHA256.length)];
+        Util.arrayCopy(ASN1_SHA256, (short) 0, markedData, (short) 0, (short) ASN1_SHA256.length);
+        Util.arrayCopy(buffer, ISO7816.OFFSET_CDATA, markedData, (short) ASN1_SHA256.length, inputLength);
         byte dataLength = buffer[ISO7816.OFFSET_LC];
-        short outLength = cipher.doFinal(buffer, ISO7816.OFFSET_CDATA, (short) dataLength, buffer,
-            ISO7816.OFFSET_CDATA);
+        short outLength = cipher.doFinal(markedData, (short) 0, (short) markedData.length, buffer, ISO7816.OFFSET_CDATA);
         apdu.setOutgoingAndSend(ISO7816.OFFSET_CDATA, outLength);
     }
 
     /**
      * <h2>"Get public key" command.</h2>
-     * <p>Checks that the user is logged in ({@link NotreProjet#checkLoggedIn()}), and if so,
-     * sends back the public key ({@link NotreProjet#keyPair}) to the client.</p>
+     * <p>Sends back the public key ({@link NotreProjet#keyPair}) to the client.</p>
      * <p>Output format:</p>
      * <table>
      *     <tr><th>Offset</th><th>Length</th><th>Value</th></tr>
@@ -348,8 +365,6 @@ public class NotreProjet extends Applet {
      * @param apdu the APDU object
      */
     private void getPublicKey(APDU apdu) {
-        checkLoggedIn();
-
         byte[] buffer = apdu.getBuffer();
         short offset = ISO7816.OFFSET_CDATA;
         RSAPublicKey key = (RSAPublicKey) keyPair.getPublic();
@@ -358,5 +373,33 @@ public class NotreProjet extends Applet {
         short modLen = key.getModulus(buffer, (short) (offset + 4 + expLen));
         Util.setShort(buffer, (short) (offset + 2 + expLen), modLen);
         apdu.setOutgoingAndSend(offset, (short) (4 + expLen + modLen));
+    }
+
+    /**
+     * <h2>"Get private key" command.</h2>
+     * <p>Checks that the user is logged in ({@link NotreProjet#checkLoggedIn()}), and if so,
+     * sends back the private key ({@link NotreProjet#keyPair}) to the client.</p>
+     * <p>Output format:</p>
+     * <table>
+     *     <tr><th>Offset</th><th>Length</th><th>Value</th></tr>
+     *     <tr><td>0</td><td>2</td><td>P length (<code>p_len</code>)</td></tr>
+     *     <tr><td>2</td><td><code>p_len</code></td><td>P</td></tr>
+     *     <tr><td>2 + <code>p_len</code></td><td>2</td><td>Q length (<code>q_len</code>)</td></tr>
+     *     <tr><td>4 + <code>p_len</code></td><td><code>q_len</code></td><td>Q</td></tr>
+     * </table>
+     *
+     * @param apdu the APDU object
+     */
+    private void getPrivateKey(APDU apdu) {
+        checkLoggedIn();
+
+        byte[] buffer = apdu.getBuffer();
+        short offset = ISO7816.OFFSET_CDATA;
+        RSAPrivateCrtKey key = (RSAPrivateCrtKey) keyPair.getPrivate();
+        short pLen = key.getP(buffer, (short) (offset + 2));
+        Util.setShort(buffer, offset, pLen);
+        short qLen = key.getQ(buffer, (short) (offset + 4 + pLen));
+        Util.setShort(buffer, (short) (offset + 2 + pLen), qLen);
+        apdu.setOutgoingAndSend(offset, (short) (4 + pLen + qLen));
     }
 }
