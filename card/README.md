@@ -1,21 +1,22 @@
-IntelliJ IDEA JavaCard Project Template
-=====================================
+# Partie carte
 
-This is a template project for Java Card development using IntelliJ IDEA IDE.
+## Outils requis
 
-Setup
-=====================================
+- JDK 8 (disponible [par exemple ici](https://sdlc-esd.oracle.com/ESD6/JSCDL/jdk/8u341-b10/424b9da4b48848379167015dcc250d8d/jdk-8u341-windows-x64.exe?GroupName=JSC&FilePath=/ESD6/JSCDL/jdk/8u341-b10/424b9da4b48848379167015dcc250d8d/jdk-8u341-windows-x64.exe&BHost=javadl.sun.com&File=jdk-8u341-windows-x64.exe&AuthParam=1668616581_6bbc106434d1bee4e75213cc112363e0&ext=.exe) – lien vers les serveurs d'Oracle susceptible de disparaître, s'il ne fonctionne plus, chercher sur Google un lien à jour)
+- IntelliJ (à défaut, de quoi compiler un projet Ant)
+- Pour Windows, gpshell (disponible [ici](https://freefr.dl.sourceforge.net/project/globalplatform/GPShell/GPShell-2.2.0/gpshell-binary-2.2.0.zip))
+  - Télécharger le zip, et l'extraire dans le dossier `card`, de sorte à ce le fichier `gpshell.exe` se trouve dans le même dossier que le `README.md` que vous êtes en train de lire
+- Pour Linux, le paquet gpshell correspondant à votre distribution
 
-1.	Install latest 1.6.x Java SDK from here. (Java SE 6 Update xx JDK). 1.8 and next Java versions should also be ok. Just ensure javac can emit *.class files in 1.2 version (-source and -target command line switches)
-1.	Open project using IDEA’s `File` -> `Open project`
-1.	Go to `Project` -> `Project Structure` -> `SDKs` and add JDK you installed on step 1. If there is already something, you can delete it before adding newly installed JDK
-1.	Go to `File` -> `Project Structure` -> `Libraries`. Remove current Classes entry. Then add either `lib\Egate\lib\api.jar` or `\lib\jc221\lib\api.jar` depending on the card type you develop applets for.
-1.	Click on the `helloWorld`` package in the Project view and press Shift-F6 to rename it to the name you like. The same goes to `HelloWorld` applet.
-1.	Open `Common.properties`` file and setup everything you need there according to comments, including path to JDK installation folder. Uncomment/comment entries, that control which card platform is the target.
-1.	Open `build.xml` (this is an [`Ant`](http://ant.apache.org/) build package so you need `Ant` plugin to be installed in IDEA) and correct entries, that follow `${APPLETAIDPREFIX}` to suit your AID.
-1.	To build applet, use [`Ant`](http://ant.apache.org/) window on the right of the screen. Use binarize.all.egate to build applets for egate cards (experimental) and `binarize.all.standard` for Gemalto TOPs and similiar.
-1.	Target files will be in the \out\helloWorld\javacard folder where helloWorld is your package name
+## Installation de l'applet
 
-If you have more than one applet in the project, edit build.xml and add a second entry under each <target> tag with the info you need.
+Compiler le projet via la cible Ant `binarize.all.standard` (ça vous donnera un fichier `out/notreprojet/javacard/notreprojet.cap`).
+- dans IntelliJ, voir le panneau latéral "Ant" :
 
-Now you have build your applet using IDEA's menu '`Build` -> `Make project`.
+![image](https://user-images.githubusercontent.com/4533568/202867541-a730e7c0-a1f8-4018-b67d-c09910dd47f2.png)
+
+Ensuite, lancer `gpshell upload.gp` dans le dossier `card`. 
+
+![6a0120a85dcdae970b0128776ff992970c-pi (3)](https://user-images.githubusercontent.com/4533568/202867490-b0bcfb5f-df2d-4426-af53-0fc0172446cc.png)
+
+L'applet est maintenant sur la carte, et les [clients Python](../client_python) sont maintenant utilisables.
