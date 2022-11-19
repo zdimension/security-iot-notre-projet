@@ -130,10 +130,6 @@ class Card:
     def instr(self, ins, p1=0, p2=0, write=bytes(), recv=0, cla=CLA_PROJET) -> Response[bytes]:
         write = bytes(write)
         instr_name = get_instruction_name(ins)
-        if instr_name:
-            instr_name = instr_name[0][4:]
-        else:
-            instr_name = f"{ins:02X}"
         log(
             f"{GREEN('Instruction')} {YELLOW(instr_name)} with "
             f"P1={YELLOW(f'{p1:02X}')} "
@@ -161,14 +157,15 @@ class Card:
         return self.instr(0x01).with_processor(lambda res: res.data.decode("utf-8"))
 
     @command()
-    def login(self, pin):
+    def login(self, pin) -> Response[bytes]:
         """Login with the given PIN"""
-        self.instr(0x02, write=bytes(map(int, pin)))
+        return self.instr(0x02, write=bytes(map(int, pin)))
 
     @command(auth=True)
     def change_pin(self, new_pin):
         """Change the PIN to new_pin"""
         self.instr(0x03, write=bytes(map(int, new_pin)))
+        print(YELLOW("= Note:"), "you will need to re-login after this")
 
     @command(auth=True)
     def logout(self):
@@ -179,7 +176,7 @@ class Card:
     def factory_reset(self):
         """Reset the card to its factory state"""
         self.instr(0x05)
-        print("Note: you will need to re-login after this")
+        print(YELLOW("= Note:"), "you will need to re-login after this")
 
     @command(auth=True)
     def sign(self, data) -> Response[bytes]:
@@ -207,6 +204,12 @@ class Card:
     def get_private_key(self) -> Response[Tuple[int, int]]:
         """Get the private key of the card"""
         return self.instr(0x08).with_processor(lambda res: Card._deserialize_pair(res.data))
+
+    @command()
+    def verbose(self):
+        """Toggle verbose mode"""
+        Logger.log_verbose = not Logger.log_verbose
+        print("Verbose mode", GREEN('enabled') if Logger.log_verbose else RED('disabled'))
 
     @command(auth=True)
     def export_keypair(self, outfile):

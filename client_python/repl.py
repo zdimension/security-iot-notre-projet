@@ -20,13 +20,13 @@ print()
 commands = card.commands()
 auth_marker = RED("#")
 for name, func in commands.items():
-    args = YELLOW(
+    args = CYAN(
         " ".join(f"<{x}>" for x in inspect.signature(func).parameters).ljust(26 - len(name)))
     func.__func__.help = " ".join([
         auth_marker if func.requires_auth else " ",
-        name, args,
+        YELLOW(name), args,
         # highlight argument names
-        re.sub(rf"({'|'.join(inspect.signature(func).parameters)})", YELLOW("\\1"), func.__doc__,
+        re.sub(rf"({'|'.join(inspect.signature(func).parameters)})", CYAN("\\1"), func.__doc__,
                flags=re.IGNORECASE)
     ])
 
@@ -40,21 +40,18 @@ while True:
     cmd, *args = command.split()
     if cmd == "exit":
         break
-    elif cmd == "verbose":
-        Logger.log_verbose = not Logger.log_verbose
-        print("Verbose mode", GREEN('enabled') if Logger.log_verbose else RED('disabled'))
     elif cmd == "help":
         print("Commands:")
         for func in commands.values():
             print(func.help)
         print()
         print(f"Commands marked with a {auth_marker} require authentication.")
-        print(
-            "You can call a command by typing a prefix of its name, e.g. 'h' for 'hello'.")
+        print("You can call a command by typing a prefix of its name, "
+              f"e.g. '{YELLOW('h')}' for '{YELLOW('hello')}'.")
     elif fct := [*(fct for name, fct in commands.items() if name.startswith(cmd)), None][0]:  # prefix lookup
         try:
             resp = fct(*args)
-            if resp is None:
+            if resp is None or (hasattr(resp, "data") and resp.data == bytes()):
                 resp = GREEN("Success")
             else:
                 resp = resp.processed if isinstance(resp, Response) else resp
@@ -67,7 +64,7 @@ while True:
             print(RED(f"! {e}"))
             if Logger.log_verbose:
                 traceback.print_tb(e.__traceback__)
-            print(YELLOW("?"), "Usage:")
+            print(YELLOW("?"), "Maybe check the usage:")
             print(fct.help)
     else:
         print(RED("! Unknown command '" + RESET(cmd) + RED("'")))

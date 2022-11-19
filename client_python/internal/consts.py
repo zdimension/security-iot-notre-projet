@@ -24,5 +24,5 @@ INS_SELECT = 0xA4
 def get_instruction_name(ins):
     results = [key for key, val in globals().items() if val == ins and key.startswith("INS_")]
     if results:
-        return results[0]
+        return results[0][4:]
     return f"{ins:02X}"

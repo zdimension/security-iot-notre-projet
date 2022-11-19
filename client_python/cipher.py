@@ -8,7 +8,7 @@ from internal.consts import *
 init()
 
 # get filename from argv
-if len(sys.argv) <= 2:
+if len(sys.argv) < 2:
     print(f"Usage: python3 ", GREEN('cipher.py'), YELLOW('<filename>'), LIGHTBLACK_EX('[-v]'))
     exit()
 
