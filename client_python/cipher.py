@@ -9,7 +9,7 @@ init()
 
 # get filename from argv
 if len(sys.argv) < 2:
-    print(f"Usage: python3 ", GREEN('cipher.py'), YELLOW('<filename>'), LIGHTBLACK_EX('[-v]'))
+    print(f"Usage: python3", GREEN('cipher.py'), YELLOW('<filename>'), LIGHTBLACK_EX('[-v]'))
     exit()
 
 filename = sys.argv[1]
